@@ -3,11 +3,10 @@ import sqlite3
 DB_NAME = "ledger_system.db"
 
 def initialize_database():
-    """Creates the table if it does not exist. This is your schema enforcement."""
+    """Forces the creation of a strictly typed relational table."""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    # Notice the strict data typing. This prevents garbage data from entering your system.
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,20 +22,20 @@ def initialize_database():
     conn.close()
 
 def commit_records_to_db(validated_data):
-    """Takes the human-approved list of dictionaries and inserts them."""
+    """Safely inserts human-verified data into the database."""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
     for row in validated_data:
-        # Skip empty rows or errors
-        if "error" in row or not row.get("Customer_Name"):
+        # Failsafe to prevent garbage data from entering the database
+        if "error" in row or not row.get("Customer_Name") or row.get("Customer_Name") == "ERROR":
             continue
             
         cursor.execute('''
             INSERT INTO transactions (Customer_Name, Date, Product, Quantity, Amount)
             VALUES (?, ?, ?, ?, ?)
-        ''', (row['Customer_Name'], row['Date'], row['Product'], row['Quantity'], row['Amount']))
+        ''', (row.get('Customer_Name'), row.get('Date'), row.get('Product'), row.get('Quantity', 0), row.get('Amount', 0)))
     
     conn.commit()
     conn.close()
-  
+    
